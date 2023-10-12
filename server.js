@@ -22,6 +22,10 @@ const PORT = process.env.PORT || 8080;
 
 app.use(express.static("public"));
 
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, "/views/404.html"));
+});
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "/views/home.html"));
 });
