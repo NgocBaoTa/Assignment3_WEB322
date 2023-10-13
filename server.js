@@ -1,15 +1,17 @@
 /** @format */
 
 /********************************************************************************
- * WEB322 – Assignment 02
+ * WEB322 – Assignment 03
  *
  * I declare that this assignment is my own work in accordance with Seneca's
  * Academic Integrity Policy:
  *
  * https://www.senecacollege.ca/about/policies/academic-integrity-policy.html
  *
- * Name: Bao Ngoc Ta Student ID: 116038225 Date: 09/28/2023
- *********************************************************************************/
+ * Name: Bao Ngoc Ta  Student ID: 116038225 Date: October 13, 2023
+ *
+ * Published URL: https://puce-blushing-panther.cyclic.app/
+*********************************************************************************/
 
 const express = require("express");
 const path = require("path");
