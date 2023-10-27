@@ -1,17 +1,17 @@
 /** @format */
 
 /********************************************************************************
- * WEB322 – Assignment 03
+ * WEB322 – Assignment 04
  *
  * I declare that this assignment is my own work in accordance with Seneca's
  * Academic Integrity Policy:
  *
  * https://www.senecacollege.ca/about/policies/academic-integrity-policy.html
  *
- * Name: Bao Ngoc Ta  Student ID: 116038225 Date: October 13, 2023
+ * Name: Bao Ngoc Ta  Student ID: 116038225 Date: October 27, 2023
  *
  * Published URL: https://puce-blushing-panther.cyclic.app/
-*********************************************************************************/
+ *********************************************************************************/
 
 const express = require("express");
 const path = require("path");
@@ -22,45 +22,54 @@ const app = express();
 
 const PORT = process.env.PORT || 8080;
 
+app.set("view engine", "ejs");
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/home.html"));
+  res.render("home");
 });
 
 app.get("/about", (req, res) => {
-  res.sendFile(path.join(__dirname, "/views/about.html"));
+  res.render("about");
 });
 
 app.get("/lego/sets", (req, res) => {
   if (req.query.theme) {
     legoData
       .getSetsByTheme(req.query.theme)
-      .then((data) => res.status(200).json(data))
+      .then((data) => res.render("sets", { sets: data }))
       .catch((err) =>
-        res.status(404).sendFile(path.join(__dirname, "/views/404.html"))
+        res.status(404).render("404", {
+          message: "No Sets found for a matching theme",
+        })
       );
   }
 
   legoData
     .getAllSets()
-    .then((data) => res.json(data))
+    .then((data) => res.render("sets", { sets: data }))
     .catch((err) =>
-      res.status(404).sendFile(path.join(__dirname, "/views/404.html"))
+      res.status(404).render("404", {
+        message: "I'm sorry, we're unable to find what you're looking for",
+      })
     );
 });
 
 app.get("/lego/sets/:id", (req, res) => {
   legoData
     .getSetByNum(req.params.id)
-    .then((data) => res.json(data))
+    .then((data) => res.render("set", { set: data }))
     .catch((err) =>
-      res.status(404).sendFile(path.join(__dirname, "/views/404.html"))
+      res.status(404).render("404", {
+        message: "No Sets found for a specific set num",
+      })
     );
 });
 
 app.use((req, res) => {
-  res.status(404).sendFile(path.join(__dirname, "/views/404.html"));
+  res.status(404).render("404", {
+    message: "No view matched for a specific route",
+  });
 });
 
 legoData
