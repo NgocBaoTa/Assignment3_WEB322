@@ -1,21 +1,22 @@
 /** @format */
 
 /********************************************************************************
- * WEB322 – Assignment 05
+ * WEB322 – Assignment 06
  *
  * I declare that this assignment is my own work in accordance with Seneca's
  * Academic Integrity Policy:
  *
  * https://www.senecacollege.ca/about/policies/academic-integrity-policy.html
  *
- * Name: Bao Ngoc Ta  Student ID: 116038225 Date: November 18, 2023
+ * Name: Bao Ngoc Ta  Student ID: 116038225 Date: November 26, 2023
  *
  * Published URL: https://puce-blushing-panther.cyclic.app/
  *********************************************************************************/
 
 const express = require("express");
 const path = require("path");
-
+const clientSessions = require("client-sessions");
+const authData = require("./modules/auth_service");
 const legoData = require("./modules/legoSets");
 
 const app = express();
@@ -25,6 +26,28 @@ const PORT = process.env.PORT || 8080;
 
 app.set("view engine", "ejs");
 app.use(express.static("public"));
+
+app.use(
+  clientSessions({
+    cookieName: "session",
+    secret: "o6LjQ5EVNC28ZgK64hDELM18ScpFQr",
+    duration: 24 * 60 * 60 * 1000,
+    activeDuration: 1000 * 60 * 5,
+  })
+);
+
+app.use((req, res, next) => {
+  res.locals.session = req.session;
+  next();
+});
+
+function ensureLogin(req, res, next) {
+  if (!req.session.user) {
+    res.redirect("/login");
+  } else {
+    next();
+  }
+}
 
 app.get("/", (req, res) => {
   res.render("home");
@@ -70,7 +93,7 @@ app.get("/lego/sets/:id", (req, res) => {
     );
 });
 
-app.get("/lego/addSet", (req, res) => {
+app.get("/lego/addSet", ensureLogin, (req, res) => {
   legoData
     .getAllThemes()
     .then((themeData) => res.render("addSet", { themes: themeData }))
@@ -81,7 +104,7 @@ app.get("/lego/addSet", (req, res) => {
     );
 });
 
-app.post("/lego/addSet", (req, res) => {
+app.post("/lego/addSet", ensureLogin, (req, res) => {
   legoData
     .addSet(req.body)
     .then(() => res.redirect("/lego/sets"))
@@ -92,7 +115,7 @@ app.post("/lego/addSet", (req, res) => {
     );
 });
 
-app.get("/lego/editSet/:num", async (req, res) => {
+app.get("/lego/editSet/:num", ensureLogin, async (req, res) => {
   try {
     const setData = await legoData.getSetByNum(req.params.num);
     const themeData = await legoData.getAllThemes();
@@ -105,7 +128,7 @@ app.get("/lego/editSet/:num", async (req, res) => {
   }
 });
 
-app.post("/lego/editSet", (req, res) => {
+app.post("/lego/editSet", ensureLogin, (req, res) => {
   legoData
     .editSet(req.body.set_num, req.body)
     .then(() => res.redirect("/lego/sets"))
@@ -116,8 +139,7 @@ app.post("/lego/editSet", (req, res) => {
     );
 });
 
-
-app.get("/lego/deleteSet/:num", async (req, res) => {
+app.get("/lego/deleteSet/:num", ensureLogin, async (req, res) => {
   legoData
     .deleteSet(req.params.num)
     .then(() => res.redirect("/lego/sets"))
@@ -128,6 +150,48 @@ app.get("/lego/deleteSet/:num", async (req, res) => {
     );
 });
 
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+
+app.get("/register", (req, res) => {
+  res.render("register");
+});
+
+app.post("/register", (req, res) => {
+  authData
+    .registerUser(req.body)
+    .then(() => res.render("register", { successMessage: "User created" }))
+    .catch((err) =>
+      res.render("register", { errorMessage: err, userName: req.body.userName })
+    );
+});
+
+app.post("/login", (req, res) => {
+  req.body.userAgent = req.get("User-Agent");
+  authData
+    .checkUser(req.body)
+    .then((user) => {
+      req.session.user = {
+        userName: user.userName,
+        email: user.email,
+        loginHistory: user.loginHistory,
+      };
+      res.redirect("/lego/sets");
+    })
+    .catch((err) => {
+      res.render("login", { errorMessage: err, userName: req.body.userName });
+    });
+});
+
+app.get("/logout", (req, res) => {
+  req.session.reset();
+  res.redirect("/");
+});
+
+app.get("/userHistory", ensureLogin, (req, res) => {
+  res.render("userHistory");
+});
 
 app.use((req, res) => {
   res.status(404).render("404", {
@@ -137,5 +201,12 @@ app.use((req, res) => {
 
 legoData
   .initialize()
-  .then(() => app.listen(PORT, () => console.log(`listening on port ${PORT}`)))
-  .catch((error) => console.log(`Failed to listen on port ${PORT}`));
+  .then(authData.initialize)
+  .then(function () {
+    app.listen(PORT, function () {
+      console.log(`app listening on: ${PORT}`);
+    });
+  })
+  .catch(function (err) {
+    console.log(`unable to start server: ${err}`);
+  });
